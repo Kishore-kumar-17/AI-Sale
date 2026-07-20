@@ -5,9 +5,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getLeadStats } from "@/services/leads";
 
 export default async function DashboardPage() {
-  const user = await currentUser();
+  const [user, stats] = await Promise.all([currentUser(), getLeadStats()]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -24,13 +25,13 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardDescription>Total Leads</CardDescription>
-            <CardTitle className="text-3xl">—</CardTitle>
+            <CardTitle className="text-3xl">{stats.total}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader>
             <CardDescription>Today&apos;s Leads</CardDescription>
-            <CardTitle className="text-3xl">—</CardTitle>
+            <CardTitle className="text-3xl">{stats.todayCount}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
@@ -42,18 +43,17 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardDescription>Conversion Rate</CardDescription>
-            <CardTitle className="text-3xl">—</CardTitle>
+            <CardTitle className="text-3xl">{stats.conversionRate}%</CardTitle>
           </CardHeader>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Lead pipeline coming in Phase 2</CardTitle>
+          <CardTitle>Meetings coming in Phase 5</CardTitle>
           <CardDescription>
-            The CRM module (create, edit, search, filter leads) hasn&apos;t
-            been built yet. Dashboard statistics will populate once leads
-            exist.
+            Meeting scheduling hasn&apos;t been built yet — that stat card
+            will populate once it ships.
           </CardDescription>
         </CardHeader>
       </Card>
