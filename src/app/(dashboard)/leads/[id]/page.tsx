@@ -1,12 +1,15 @@
 import { notFound } from "next/navigation";
 import { getLeadById } from "@/services/leads";
 import { getResearchByLeadId } from "@/services/research";
+import { getMessagesByLeadId } from "@/services/outreach";
 import type { LeadInput } from "@/types/lead";
 import { LeadForm } from "../lead-form";
 import { updateLeadAction } from "../actions";
 import { DeleteLeadButton } from "../delete-lead-button";
 import { GenerateResearchButton } from "./generate-research-button";
 import { ResearchView } from "./research-view";
+import { GenerateOutreachButton } from "./generate-outreach-button";
+import { OutreachView } from "./outreach-view";
 
 export default async function EditLeadPage({
   params,
@@ -14,7 +17,11 @@ export default async function EditLeadPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [lead, research] = await Promise.all([getLeadById(id), getResearchByLeadId(id)]);
+  const [lead, research, messages] = await Promise.all([
+    getLeadById(id),
+    getResearchByLeadId(id),
+    getMessagesByLeadId(id),
+  ]);
 
   if (!lead) {
     notFound();
@@ -54,6 +61,11 @@ export default async function EditLeadPage({
       <div className="mt-8 flex flex-col gap-4">
         <GenerateResearchButton leadId={id} hasResearch={!!research} />
         {research && <ResearchView research={research} />}
+      </div>
+
+      <div className="mt-8 flex flex-col gap-4">
+        <GenerateOutreachButton leadId={id} hasMessages={messages.length > 0} />
+        {messages.length > 0 && <OutreachView messages={messages} />}
       </div>
     </div>
   );
