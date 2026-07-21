@@ -38,6 +38,7 @@ export async function generateProposalForLead(leadId: string) {
       ...parsed.data,
       generatedAt: new Date(),
       status: "UNANSWERED",
+      sentAt: null,
       lastExportedFormat: null,
       lastExportedAt: null,
     },
@@ -47,11 +48,14 @@ export async function generateProposalForLead(leadId: string) {
 export async function updateProposalStatus(leadId: string, status: ProposalStatus) {
   const proposal = await prisma.proposal.update({
     where: { leadId },
-    data: { status },
+    data: { status, ...(status === "SENT" ? { sentAt: new Date() } : {}) },
   });
 
   if (status === "SENT") {
-    await prisma.lead.update({ where: { id: leadId }, data: { status: "PROPOSAL_SENT" } });
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: { status: "PROPOSAL_SENT", statusChangedAt: new Date() },
+    });
   }
 
   return proposal;

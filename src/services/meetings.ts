@@ -50,7 +50,7 @@ export async function createMeeting(leadId: string, input: MeetingInput, created
 
   await prisma.lead.update({
     where: { id: leadId },
-    data: { status: "MEETING_SCHEDULED" },
+    data: { status: "MEETING_SCHEDULED", statusChangedAt: new Date() },
   });
 
   return meeting;

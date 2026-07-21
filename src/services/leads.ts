@@ -90,9 +90,15 @@ export async function createLead(input: LeadInput, createdById: string) {
 }
 
 export async function updateLead(id: string, input: LeadInput) {
+  const current = await prisma.lead.findUnique({ where: { id }, select: { status: true } });
+  const statusChanged = current !== null && current.status !== input.status;
+
   return prisma.lead.update({
     where: { id },
-    data: toLeadData(input),
+    data: {
+      ...toLeadData(input),
+      ...(statusChanged ? { statusChangedAt: new Date() } : {}),
+    },
   });
 }
 

@@ -50,6 +50,9 @@ enum LeadStatus {
 model Lead {
   id        String     @id @default(cuid())
   status    LeadStatus @default(NEW)
+  // When `status` last changed — drives Phase 7's "no response after N days" rules.
+  // Distinct from `updatedAt`, which bumps on any field edit, not just status changes.
+  statusChangedAt DateTime @default(now())
 
   businessName   String
   ownerName      String?
@@ -74,6 +77,7 @@ model Lead {
   messages Message[]
   meetings Meeting[]
   proposal Proposal?
+  tasks    Task[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -175,6 +179,8 @@ model Meeting {
   createdBy   User   @relation(fields: [createdById], references: [id])
   createdById String
 
+  tasks Task[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -213,6 +219,8 @@ model Proposal {
   terms              String[]
 
   status ProposalStatus @default(UNANSWERED)
+  // Set when `status` transitions to SENT — drives Phase 7's "proposal unanswered after 5 days" rule.
+  sentAt DateTime?
 
   lastExportedFormat ProposalExportFormat?
   lastExportedAt     DateTime?
@@ -220,4 +228,37 @@ model Proposal {
   generatedAt DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+enum TaskType {
+  NO_RESPONSE_3_DAYS
+  NO_RESPONSE_7_DAYS
+  PROPOSAL_UNANSWERED_5_DAYS
+  MEETING_TOMORROW
+}
+
+// Phase 7 — Follow-up Automation (see docs/phases/phase-07-followup-automation.md).
+// Reminders only — see the Critical Safety Rule in that doc: nothing here ever sends
+// a message to a lead automatically.
+model Task {
+  id     String @id @default(cuid())
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId String
+
+  type    TaskType
+  title   String
+  dueDate DateTime
+
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  // Only set for MEETING_TOMORROW reminders.
+  meeting   Meeting? @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  meetingId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leadId])
+  @@index([completed])
 }
