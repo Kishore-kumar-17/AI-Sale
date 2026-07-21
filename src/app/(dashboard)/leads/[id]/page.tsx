@@ -3,6 +3,7 @@ import { getLeadById } from "@/services/leads";
 import { getResearchByLeadId } from "@/services/research";
 import { getMessagesByLeadId } from "@/services/outreach";
 import { getMeetingsByLeadId } from "@/services/meetings";
+import { getProposalByLeadId } from "@/services/proposals";
 import type { LeadInput } from "@/types/lead";
 import { LeadForm } from "../lead-form";
 import { updateLeadAction } from "../actions";
@@ -14,6 +15,8 @@ import { OutreachView } from "./outreach-view";
 import { MeetingForm } from "./meeting-form";
 import { MeetingsView } from "./meetings-view";
 import { scheduleMeetingAction } from "./meeting-actions";
+import { GenerateProposalButton } from "./generate-proposal-button";
+import { ProposalView } from "./proposal-view";
 
 export default async function EditLeadPage({
   params,
@@ -21,11 +24,12 @@ export default async function EditLeadPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [lead, research, messages, meetings] = await Promise.all([
+  const [lead, research, messages, meetings, proposal] = await Promise.all([
     getLeadById(id),
     getResearchByLeadId(id),
     getMessagesByLeadId(id),
     getMeetingsByLeadId(id),
+    getProposalByLeadId(id),
   ]);
 
   if (!lead) {
@@ -84,6 +88,11 @@ export default async function EditLeadPage({
           Meeting scheduling unlocks once this lead&apos;s status is Interested or later.
         </p>
       )}
+
+      <div className="mt-8 flex flex-col gap-4">
+        <GenerateProposalButton leadId={id} hasProposal={!!proposal} />
+        {proposal && <ProposalView leadId={id} proposal={proposal} />}
+      </div>
     </div>
   );
 }

@@ -73,6 +73,7 @@ model Lead {
   research Research?
   messages Message[]
   meetings Meeting[]
+  proposal Proposal?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -179,4 +180,44 @@ model Meeting {
 
   @@index([leadId])
   @@index([scheduledAt])
+}
+
+enum ProposalStatus {
+  UNANSWERED
+  SENT
+  ANSWERED
+}
+
+enum ProposalExportFormat {
+  PDF
+  DOCX
+}
+
+// Phase 6 — Proposal Generator (see docs/phases/phase-06-proposal-generator.md).
+// One proposal per lead; regenerating overwrites it and resets status/export tracking,
+// since the previous content is no longer what would have been sent/answered.
+model Proposal {
+  id     String @id @default(cuid())
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId String @unique
+
+  introduction       String
+  understandingClient String
+  problemStatement   String
+  solution           String
+  features           String[]
+  timeline           String[]
+  pricing            String
+  deliverables       String[]
+  support            String
+  terms              String[]
+
+  status ProposalStatus @default(UNANSWERED)
+
+  lastExportedFormat ProposalExportFormat?
+  lastExportedAt     DateTime?
+
+  generatedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
