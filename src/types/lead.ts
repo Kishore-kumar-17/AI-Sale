@@ -68,3 +68,20 @@ export const leadFiltersSchema = z.object({
 });
 
 export type LeadFilters = z.infer<typeof leadFiltersSchema>;
+
+// Query-string values are user-controllable (typos, stale bookmarks, manual edits).
+// Fall back to defaults for any invalid field instead of throwing.
+export function parseLeadFilters(raw: Record<string, unknown>): LeadFilters {
+  const result = leadFiltersSchema.safeParse(raw);
+  if (result.success) {
+    return result.data;
+  }
+  const fallback = { ...raw };
+  for (const issue of result.error.issues) {
+    const key = issue.path[0];
+    if (typeof key === "string") {
+      delete fallback[key];
+    }
+  }
+  return leadFiltersSchema.parse(fallback);
+}

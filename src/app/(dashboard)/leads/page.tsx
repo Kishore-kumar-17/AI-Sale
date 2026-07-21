@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getLeads } from "@/services/leads";
-import { LEAD_STATUS_LABELS, leadFiltersSchema } from "@/types/lead";
+import { LEAD_STATUS_LABELS, parseLeadFilters } from "@/types/lead";
 import { LeadFilters } from "./lead-filters";
 import { DeleteLeadButton } from "./delete-lead-button";
 
@@ -31,7 +31,7 @@ export default async function LeadsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const filters = leadFiltersSchema.parse({
+  const filters = parseLeadFilters({
     search: typeof params.search === "string" ? params.search : undefined,
     status: typeof params.status === "string" ? params.status : undefined,
     category: typeof params.category === "string" ? params.category : undefined,

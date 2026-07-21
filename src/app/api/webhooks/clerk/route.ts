@@ -1,6 +1,7 @@
 import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import type { UserJSON } from "@clerk/backend";
 import type { NextRequest } from "next/server";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 function primaryEmail(user: UserJSON): string | null {
@@ -51,9 +52,19 @@ export async function POST(request: NextRequest) {
     }
     case "user.deleted": {
       if (evt.data.id) {
-        await prisma.user
-          .delete({ where: { clerkId: evt.data.id } })
-          .catch(() => {});
+        try {
+          await prisma.user.delete({ where: { clerkId: evt.data.id } });
+        } catch (err) {
+          // P2025: no matching User row — already gone, nothing to do.
+          const alreadyGone =
+            err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025";
+          if (!alreadyGone) {
+            // Most commonly P2003: the user still has leads and Lead.createdById
+            // is ON DELETE RESTRICT, so the row is intentionally kept — but log it,
+            // since silently doing nothing here would look like a successful sync.
+            console.error("Failed to delete User for Clerk user.deleted:", evt.data.id, err);
+          }
+        }
       }
       break;
     }

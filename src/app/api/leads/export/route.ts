@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getAllLeadsForExport } from "@/services/leads";
-import { LEAD_STATUS_LABELS, leadFiltersSchema, type LeadStatus } from "@/types/lead";
+import { LEAD_STATUS_LABELS, parseLeadFilters, type LeadStatus } from "@/types/lead";
 
 const CSV_COLUMNS = [
   "businessName",
@@ -26,7 +26,12 @@ const CSV_COLUMNS = [
 
 function escapeCsvValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  const str = String(value);
+  let str = String(value);
+  // Neutralize formula injection: spreadsheet apps treat leading =, +, -, @, tab,
+  // or CR as the start of a formula, which can execute code when the file is opened.
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
   if (/[",\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }
@@ -40,7 +45,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  const filters = leadFiltersSchema.parse({
+  const filters = parseLeadFilters({
     search: searchParams.get("search") ?? undefined,
     status: searchParams.get("status") ?? undefined,
     category: searchParams.get("category") ?? undefined,
