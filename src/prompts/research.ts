@@ -15,7 +15,25 @@ like an informed analyst's best assessment. You do not have live web access, so 
 from the business name, category, location, and any handles/links provided — do not
 invent specific facts (like exact revenue or employee counts) you cannot reasonably infer.
 Keep every list entry short (a few words to one sentence). Be concrete and specific to
-this business rather than generic.`;
+this business rather than generic.
+
+Respond with ONLY a single raw JSON object — no markdown code fences, no commentary
+before or after it. The object must have exactly these keys, with these types:
+{
+  "businessSummary": string,
+  "products": string[],
+  "services": string[],
+  "targetAudience": string,
+  "strengths": string[],
+  "weaknesses": string[],
+  "websiteSuggestions": string[],
+  "recommendedPages": string[],
+  "possiblePainPoints": string[],
+  "suggestedCta": string,
+  "recommendedColorPalette": string[] (hex color codes, e.g. "#1A2B3C"),
+  "seoOpportunities": string[],
+  "googleRankingOpportunities": string[]
+}`;
 
 export function buildResearchPrompt(lead: ResearchPromptLead) {
   const details = [
@@ -30,7 +48,7 @@ export function buildResearchPrompt(lead: ResearchPromptLead) {
     .filter(Boolean)
     .join("\n");
 
-  const userPrompt = `Business details:\n${details}\n\nProduce the research brief covering: a business summary, likely products, likely services, target audience, strengths, weaknesses, website improvement suggestions, recommended pages to add, possible pain points this business may have, a suggested outreach CTA, a recommended color palette (as hex codes) for their branding, SEO opportunities, and Google ranking opportunities.`;
+  const userPrompt = `Business details:\n${details}\n\nProduce the research brief covering: a business summary, likely products, likely services, target audience, strengths, weaknesses, website improvement suggestions, recommended pages to add, possible pain points this business may have, a suggested outreach CTA, a recommended color palette (as hex codes) for their branding, SEO opportunities, and Google ranking opportunities.\n\nRemember: respond with ONLY the raw JSON object described in the system prompt.`;
 
   return { system: SYSTEM_PROMPT, user: userPrompt };
 }

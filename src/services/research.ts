@@ -1,18 +1,33 @@
 import OpenAI from "openai";
-import { zodResponseFormat } from "openai/helpers/zod";
 import { prisma } from "@/lib/prisma";
 import { researchOutputSchema } from "@/types/research";
 import { buildResearchPrompt } from "@/prompts/research";
 
 const RESEARCH_COOLDOWN_MS = 30_000;
-const MODEL = "gpt-4o-mini";
 
-function getOpenAiClient() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
+function getAiConfig() {
+  if (process.env.NVIDIA_API_KEY) {
+    return {
+      apiKey: process.env.NVIDIA_API_KEY,
+      baseURL: process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1",
+      model: process.env.NVIDIA_MODEL || "meta/llama-3.3-70b-instruct",
+    };
   }
-  return new OpenAI({ apiKey });
+  if (process.env.OPENAI_API_KEY) {
+    return {
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: undefined,
+      model: "gpt-4o-mini",
+    };
+  }
+  throw new Error("No AI provider configured — set NVIDIA_API_KEY or OPENAI_API_KEY");
+}
+
+function extractJsonObject(content: string): unknown {
+  const trimmed = content.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const jsonText = fenced ? fenced[1] : trimmed;
+  return JSON.parse(jsonText);
 }
 
 export async function getResearchByLeadId(leadId: string) {
@@ -30,26 +45,38 @@ export async function generateResearchForLead(leadId: string) {
     throw new Error("Research was just generated for this lead — please wait a bit before regenerating.");
   }
 
-  const client = getOpenAiClient();
+  const { apiKey, baseURL, model } = getAiConfig();
+  const client = new OpenAI({ apiKey, baseURL });
   const { system, user } = buildResearchPrompt(lead);
 
-  const completion = await client.chat.completions.parse({
-    model: MODEL,
+  const completion = await client.chat.completions.create({
+    model,
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    response_format: zodResponseFormat(researchOutputSchema, "business_research"),
   });
 
-  const parsed = completion.choices[0]?.message.parsed;
-  if (!parsed) {
-    throw new Error("AI did not return a valid research output");
+  const content = completion.choices[0]?.message.content;
+  if (!content) {
+    throw new Error("AI returned an empty response");
+  }
+
+  let json: unknown;
+  try {
+    json = extractJsonObject(content);
+  } catch {
+    throw new Error("AI did not return valid JSON");
+  }
+
+  const parsed = researchOutputSchema.safeParse(json);
+  if (!parsed.success) {
+    throw new Error("AI response did not match the expected research schema");
   }
 
   return prisma.research.upsert({
     where: { leadId },
-    create: { leadId, ...parsed },
-    update: { ...parsed, generatedAt: new Date() },
+    create: { leadId, ...parsed.data },
+    update: { ...parsed.data, generatedAt: new Date() },
   });
 }
