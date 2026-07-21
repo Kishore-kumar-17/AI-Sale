@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getLeadById } from "@/services/leads";
 import { getResearchByLeadId } from "@/services/research";
 import { getMessagesByLeadId } from "@/services/outreach";
+import { getMeetingsByLeadId } from "@/services/meetings";
 import type { LeadInput } from "@/types/lead";
 import { LeadForm } from "../lead-form";
 import { updateLeadAction } from "../actions";
@@ -10,6 +11,9 @@ import { GenerateResearchButton } from "./generate-research-button";
 import { ResearchView } from "./research-view";
 import { GenerateOutreachButton } from "./generate-outreach-button";
 import { OutreachView } from "./outreach-view";
+import { MeetingForm } from "./meeting-form";
+import { MeetingsView } from "./meetings-view";
+import { scheduleMeetingAction } from "./meeting-actions";
 
 export default async function EditLeadPage({
   params,
@@ -17,10 +21,11 @@ export default async function EditLeadPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [lead, research, messages] = await Promise.all([
+  const [lead, research, messages, meetings] = await Promise.all([
     getLeadById(id),
     getResearchByLeadId(id),
     getMessagesByLeadId(id),
+    getMeetingsByLeadId(id),
   ]);
 
   if (!lead) {
@@ -67,6 +72,18 @@ export default async function EditLeadPage({
         <GenerateOutreachButton leadId={id} hasMessages={messages.length > 0} />
         {messages.length > 0 && <OutreachView messages={messages} />}
       </div>
+
+      {(lead.status !== "NEW" && lead.status !== "CONTACTED") || meetings.length > 0 ? (
+        <div className="mt-8 flex flex-col gap-4">
+          <h2 className="text-lg font-semibold tracking-tight">Schedule a Meeting</h2>
+          <MeetingsView meetings={meetings} />
+          <MeetingForm action={scheduleMeetingAction.bind(null, id)} />
+        </div>
+      ) : (
+        <p className="mt-8 text-sm text-muted-foreground">
+          Meeting scheduling unlocks once this lead&apos;s status is Interested or later.
+        </p>
+      )}
     </div>
   );
 }

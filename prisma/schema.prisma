@@ -24,7 +24,16 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  leads Lead[]
+  // Phase 5 — Google Calendar connection (see docs/phases/phase-05-meeting-scheduler.md).
+  // googleAccessToken/googleTokenExpiry are just a cache of the short-lived access token;
+  // googleRefreshToken is what actually keeps the connection alive.
+  googleRefreshToken   String?
+  googleAccessToken    String?
+  googleTokenExpiry    DateTime?
+  googleConnectedEmail String?
+
+  leads    Lead[]
+  meetings Meeting[]
 }
 
 enum LeadStatus {
@@ -63,6 +72,7 @@ model Lead {
 
   research Research?
   messages Message[]
+  meetings Meeting[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -134,4 +144,39 @@ model Message {
 
   @@unique([leadId, channel, sequenceStep])
   @@index([leadId])
+}
+
+enum MeetingType {
+  ONLINE
+  OFFLINE
+}
+
+enum ReminderStatus {
+  NOT_SCHEDULED
+  SCHEDULED
+  SENT
+}
+
+// Phase 5 — Meeting Scheduler (see docs/phases/phase-05-meeting-scheduler.md).
+model Meeting {
+  id     String @id @default(cuid())
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId String
+
+  scheduledAt DateTime
+  meetingType MeetingType
+  notes       String?
+
+  googleCalendarEventId String?
+  googleMeetLink        String?
+  reminderStatus        ReminderStatus @default(NOT_SCHEDULED)
+
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdById String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leadId])
+  @@index([scheduledAt])
 }
