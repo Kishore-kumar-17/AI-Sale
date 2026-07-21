@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
 import { getLeadById } from "@/services/leads";
+import { getResearchByLeadId } from "@/services/research";
 import type { LeadInput } from "@/types/lead";
 import { LeadForm } from "../lead-form";
 import { updateLeadAction } from "../actions";
 import { DeleteLeadButton } from "../delete-lead-button";
+import { GenerateResearchButton } from "./generate-research-button";
+import { ResearchView } from "./research-view";
 
 export default async function EditLeadPage({
   params,
@@ -11,7 +14,7 @@ export default async function EditLeadPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const lead = await getLeadById(id);
+  const [lead, research] = await Promise.all([getLeadById(id), getResearchByLeadId(id)]);
 
   if (!lead) {
     notFound();
@@ -47,6 +50,11 @@ export default async function EditLeadPage({
         defaultValues={defaultValues}
         submitLabel="Save Changes"
       />
+
+      <div className="mt-8 flex flex-col gap-4">
+        <GenerateResearchButton leadId={id} hasResearch={!!research} />
+        {research && <ResearchView research={research} />}
+      </div>
     </div>
   );
 }

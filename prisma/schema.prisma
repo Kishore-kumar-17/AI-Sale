@@ -61,9 +61,43 @@ model Lead {
   createdBy   User   @relation(fields: [createdById], references: [id])
   createdById String
 
+  research Research?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([createdAt])
+}
+
+// Phase 3 — AI Business Research (see docs/phases/phase-03-ai-business-research.md).
+// One research record per lead; regenerating overwrites it (generatedAt tracks the last run).
+model Research {
+  id     String @id @default(cuid())
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId String @unique
+
+  businessSummary String
+
+  products String[]
+  services String[]
+
+  targetAudience String
+
+  strengths String[]
+  weaknesses String[]
+
+  websiteSuggestions String[]
+  recommendedPages   String[]
+  possiblePainPoints String[]
+
+  suggestedCta            String
+  recommendedColorPalette String[]
+
+  seoOpportunities           String[]
+  googleRankingOpportunities String[]
+
+  generatedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
