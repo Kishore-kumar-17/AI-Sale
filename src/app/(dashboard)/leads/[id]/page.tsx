@@ -52,6 +52,7 @@ export default async function EditLeadPage({
     businessStatus: lead.businessStatus ?? undefined,
     leadSource: lead.leadSource ?? undefined,
     notes: lead.notes ?? undefined,
+    dealValue: lead.dealValue ?? undefined,
     status: lead.status,
   };
 

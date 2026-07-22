@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { generateJson } from "@/lib/ai";
-import { proposalOutputSchema, type ProposalStatus } from "@/types/proposal";
+import { logActivity } from "@/services/activity";
+import { PROPOSAL_STATUS_LABELS, proposalOutputSchema, type ProposalStatus } from "@/types/proposal";
 import { buildProposalPrompt } from "@/prompts/proposal";
 
 const PROPOSAL_COOLDOWN_MS = 30_000;
@@ -31,7 +32,7 @@ export async function generateProposalForLead(leadId: string) {
     throw new Error("AI response did not match the expected proposal schema");
   }
 
-  return prisma.proposal.upsert({
+  const proposal = await prisma.proposal.upsert({
     where: { leadId },
     create: { leadId, ...parsed.data },
     update: {
@@ -43,9 +44,19 @@ export async function generateProposalForLead(leadId: string) {
       lastExportedAt: null,
     },
   });
+
+  await logActivity({
+    leadId,
+    type: "PROPOSAL_GENERATED",
+    description: `Proposal generated for ${lead.businessName}`,
+  });
+
+  return proposal;
 }
 
 export async function updateProposalStatus(leadId: string, status: ProposalStatus) {
+  const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { businessName: true } });
+
   const proposal = await prisma.proposal.update({
     where: { leadId },
     data: { status, ...(status === "SENT" ? { sentAt: new Date() } : {}) },
@@ -57,6 +68,12 @@ export async function updateProposalStatus(leadId: string, status: ProposalStatu
       data: { status: "PROPOSAL_SENT", statusChangedAt: new Date() },
     });
   }
+
+  await logActivity({
+    leadId,
+    type: "PROPOSAL_STATUS_CHANGED",
+    description: `Proposal for ${lead?.businessName ?? "a lead"} marked ${PROPOSAL_STATUS_LABELS[status]}`,
+  });
 
   return proposal;
 }

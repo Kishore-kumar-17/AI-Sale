@@ -35,6 +35,7 @@ const FIELDS: Field[] = [
   { name: "followers", label: "Followers", type: "number" },
   { name: "businessStatus", label: "Business Status" },
   { name: "leadSource", label: "Lead Source" },
+  { name: "dealValue", label: "Deal Value (₹)", type: "number" },
 ];
 
 export function LeadForm({

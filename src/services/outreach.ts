@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { generateJson } from "@/lib/ai";
+import { logActivity } from "@/services/activity";
 import { outreachOutputSchema, MESSAGE_SLOTS } from "@/types/message";
 import { buildOutreachPrompt } from "@/prompts/outreach";
 
@@ -36,7 +37,7 @@ export async function generateOutreachForLead(leadId: string) {
 
   const generatedAt = new Date();
 
-  return prisma.$transaction(
+  const messages = await prisma.$transaction(
     MESSAGE_SLOTS.map((slot) =>
       prisma.message.upsert({
         where: {
@@ -60,4 +61,12 @@ export async function generateOutreachForLead(leadId: string) {
       })
     )
   );
+
+  await logActivity({
+    leadId,
+    type: "OUTREACH_GENERATED",
+    description: `Outreach messages generated for ${lead.businessName}`,
+  });
+
+  return messages;
 }

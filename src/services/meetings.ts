@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { createCalendarEventForMeeting } from "@/lib/google-calendar";
+import { logActivity } from "@/services/activity";
 import type { MeetingInput } from "@/types/meeting";
 
 const DEFAULT_DURATION_MINUTES = 30;
@@ -51,6 +52,12 @@ export async function createMeeting(leadId: string, input: MeetingInput, created
   await prisma.lead.update({
     where: { id: leadId },
     data: { status: "MEETING_SCHEDULED", statusChangedAt: new Date() },
+  });
+
+  await logActivity({
+    leadId,
+    type: "MEETING_SCHEDULED",
+    description: `Meeting scheduled with ${lead.businessName} for ${meeting.scheduledAt.toLocaleString()}`,
   });
 
   return meeting;

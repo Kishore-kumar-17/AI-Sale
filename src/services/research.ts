@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { generateJson } from "@/lib/ai";
+import { logActivity } from "@/services/activity";
 import { researchOutputSchema } from "@/types/research";
 import { buildResearchPrompt } from "@/prompts/research";
 
@@ -28,9 +29,17 @@ export async function generateResearchForLead(leadId: string) {
     throw new Error("AI response did not match the expected research schema");
   }
 
-  return prisma.research.upsert({
+  const research = await prisma.research.upsert({
     where: { leadId },
     create: { leadId, ...parsed.data },
     update: { ...parsed.data, generatedAt: new Date() },
   });
+
+  await logActivity({
+    leadId,
+    type: "RESEARCH_GENERATED",
+    description: `Research generated for ${lead.businessName}`,
+  });
+
+  return research;
 }

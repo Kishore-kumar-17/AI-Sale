@@ -54,6 +54,9 @@ export const leadInputSchema = z.object({
   businessStatus: optionalString,
   leadSource: optionalString,
   notes: z.string().trim().max(5000).optional().or(z.literal("")),
+  dealValue: z
+    .union([z.coerce.number().int().min(0).max(1_000_000_000), z.literal("")])
+    .optional(),
   status: z.enum(LEAD_STATUSES as [LeadStatus, ...LeadStatus[]]),
 });
 

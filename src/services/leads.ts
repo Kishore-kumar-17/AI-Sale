@@ -1,5 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/services/activity";
+import { LEAD_STATUS_LABELS } from "@/types/lead";
 import type { LeadFilters, LeadInput } from "@/types/lead";
 
 function toNullable(value: string | undefined): string | null {
@@ -26,6 +28,8 @@ function toLeadData(input: LeadInput) {
     businessStatus: toNullable(input.businessStatus),
     leadSource: toNullable(input.leadSource),
     notes: toNullable(input.notes),
+    dealValue:
+      input.dealValue === "" || input.dealValue === undefined ? null : input.dealValue,
     status: input.status,
   };
 }
@@ -84,22 +88,40 @@ export async function getLeadById(id: string) {
 }
 
 export async function createLead(input: LeadInput, createdById: string) {
-  return prisma.lead.create({
+  const lead = await prisma.lead.create({
     data: { ...toLeadData(input), createdById },
   });
+
+  await logActivity({
+    leadId: lead.id,
+    type: "LEAD_CREATED",
+    description: `Lead created: ${lead.businessName}`,
+  });
+
+  return lead;
 }
 
 export async function updateLead(id: string, input: LeadInput) {
   const current = await prisma.lead.findUnique({ where: { id }, select: { status: true } });
   const statusChanged = current !== null && current.status !== input.status;
 
-  return prisma.lead.update({
+  const lead = await prisma.lead.update({
     where: { id },
     data: {
       ...toLeadData(input),
       ...(statusChanged ? { statusChangedAt: new Date() } : {}),
     },
   });
+
+  if (statusChanged) {
+    await logActivity({
+      leadId: lead.id,
+      type: "LEAD_STATUS_CHANGED",
+      description: `${lead.businessName} moved to ${LEAD_STATUS_LABELS[lead.status]}`,
+    });
+  }
+
+  return lead;
 }
 
 export async function deleteLead(id: string) {

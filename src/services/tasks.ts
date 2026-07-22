@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { logActivity } from "@/services/activity";
 import type { TaskType } from "@/generated/prisma/enums";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -115,8 +116,16 @@ export async function getIncompleteTasks() {
 }
 
 export async function completeTask(taskId: string) {
-  return prisma.task.update({
+  const task = await prisma.task.update({
     where: { id: taskId },
     data: { completed: true, completedAt: new Date() },
   });
+
+  await logActivity({
+    leadId: task.leadId,
+    type: "TASK_COMPLETED",
+    description: `Reminder completed: ${task.title}`,
+  });
+
+  return task;
 }

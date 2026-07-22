@@ -69,15 +69,18 @@ model Lead {
   businessStatus String? // real-world operating status of the business (e.g. Active, Closed) — distinct from the sales pipeline `status` above
   leadSource     String?
   notes          String?
+  // Manually entered deal value (₹), typically once a lead is Won — powers the dashboard's Revenue stat.
+  dealValue Int?
 
   createdBy   User   @relation(fields: [createdById], references: [id])
   createdById String
 
-  research Research?
-  messages Message[]
-  meetings Meeting[]
-  proposal Proposal?
-  tasks    Task[]
+  research   Research?
+  messages   Message[]
+  meetings   Meeting[]
+  proposal   Proposal?
+  tasks      Task[]
+  activities Activity[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -261,4 +264,31 @@ model Task {
 
   @@index([leadId])
   @@index([completed])
+}
+
+enum ActivityType {
+  LEAD_CREATED
+  LEAD_STATUS_CHANGED
+  RESEARCH_GENERATED
+  OUTREACH_GENERATED
+  MEETING_SCHEDULED
+  PROPOSAL_GENERATED
+  PROPOSAL_STATUS_CHANGED
+  TASK_COMPLETED
+}
+
+// Phase 8 — Dashboard (see docs/phases/phase-08-dashboard.md). Audit/activity log
+// feeding the Recent Activity panel; append-only, never edited.
+model Activity {
+  id     String @id @default(cuid())
+  lead   Lead?  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId String?
+
+  type        ActivityType
+  description String
+
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
+  @@index([createdAt])
 }
